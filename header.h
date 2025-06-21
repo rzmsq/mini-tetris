@@ -2,7 +2,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-enum boolean {
-    false,
-    true
-};
+#include <ncurses.h>
+
+//enum boolean {
+//    false,
+//    true
+//};

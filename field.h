@@ -4,10 +4,11 @@
 int field[HEIGHT][WIDTH] = {0};
 
 void draw_field() {
+    clear();
     for (int y = 0; y < HEIGHT; ++y) {
         for (int x = 0; x < WIDTH; ++x)
-            printf("%c", field[y][x] ? '#' : '.');
-        putchar('\n');
+            printw("%c", field[y][x] ? '#' : '.');
+        printw("\n");
     }
 }
 
