@@ -1,61 +1,75 @@
-#include "tetris.h"
+#include <ncurses.h>
 
-void process_keys(Tetromino *piece) {
-    int ch;
-    if ((ch = getch())) {
-        switch (ch) {
-            case 'a':
-                --piece->x;
-                break;
-            case 'd':
-                ++piece->x;
-                break;
-            case 's':
-                ++piece->y;
-                break;
-        }
+#define WIDTHFIELD 10
+#define HEIGHTFIELD 20
+
+int field[WIDTHFIELD][HEIGHTFIELD] = {0};
+
+struct tetromino {
+    int x, y;
+    int shape[4][4];
+} tetrominos[] = {
+    WIDTHFIELD/2, 0, {{1,1,1,1}},
+    WIDTHFIELD/2, 0, {{1}, {1,1,1}},
+    WIDTHFIELD/2, 0, {{0,0,0,1}, {0,1,1,1}},
+    WIDTHFIELD/2, 0, {{1,1}, {1,1}},
+    WIDTHFIELD/2, 0, {{0,0,1,1}, {0,1,1}},
+    WIDTHFIELD/2, 0, {{0,0,1}, {0,1,1,1}},
+    WIDTHFIELD/2, 0, {{1,1}, {0,1,1}}
+    };
+
+void
+print_field() {
+    clear();
+    int i, j;
+    for (i = 0; i < HEIGHTFIELD; ++i) {
+        for (j = 0; j < WIDTHFIELD; ++j)
+            printw("%c", field[i][j] ? '#' : '.');
+        printw("\n");
     }
+    refresh();
 }
 
-void save_tetrominos_in_field() {
-    for (int i = 0; i < freeIndx; ++i) {
-        for (int y = 0; y < HEGHTTETROMINO; ++y)
-            for(int x = 0; x < WIDTHTETROMINO; ++x)
-                if (arr_tetromino[i].shape[y][x])
-                    field[arr_tetromino[i].y+y][arr_tetromino[i].x+x] = 1;
-    }
-}
-
-int main(void) {
+int
+main(void) {
     initscr();
     cbreak();
     noecho();
     scrollok(stdscr, TRUE);
     nodelay(stdscr, TRUE);
-    srand(time(NULL));
 
-    arr_tetromino[freeIndx++] = figures_tetromino[rand()%3]; 
+    struct tetromino piece = tetrominos[0];
+    
+    bool isRun = true, collision = false;
+    while (isRun) {
+        int x, y, dx, dy;
+        field[piece.y][piece.x] = 1;
+        for (x = 0; x < 4; ++x)
+            for (y = 0; y < 4; ++y)
+                if (piece.shape[y][x])
+                    field[piece.y+y][piece.x+x] = 1;
+        print_field();
+        dx = 0;
+        dy = piece.y+1;
+        if (!field[piece.y+dy][piece.x+dx]) {
+            for (x = 0; x < 4; ++x)
+                for (y = 0; y < 4; ++y)
+                    if (piece.shape[y][x] && field[piece.y+y+dy][piece.x+x+dx])
+                        collision = true;
+        } else
+            collision = true;
 
-    while (TRUE) {
-        if (arr_tetromino[freeIndx-1].y >= HEIGHT-height_of(&arr_tetromino[freeIndx-1]) || isTetrominoStop) {
-            arr_tetromino[freeIndx++] = figures_tetromino[rand()%3]; 
-            isTetrominoStop = false;
+        if (!collision) {
+            field[piece.y][piece.x] = 0;
+            for (x = 0; x < 4; ++x)
+                for (y = 0; y < 4; ++y)
+                    if (piece.shape[y][x])
+                        field[piece.y+y][piece.x+x] = 0;
+            piece.y++;
         }
-
-        save_tetrominos_in_field();    
-
-        draw_field();
-
-        process_keys(&arr_tetromino[freeIndx-1]);
-                
-        clear_field();
-
-        move_tetromino_down(&arr_tetromino[freeIndx-1]); 
-
-        napms(300);
+        napms(200);
     }
 
     endwin();
-
     return 0;
 }
