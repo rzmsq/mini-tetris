@@ -66,21 +66,36 @@ is_piece_fall(struct tetromino *piece) {
     return piece->y < HEIGHTFIELD-piece->height;
 }
 
-void
+bool
 move_piece_down(struct tetromino *piece) {
-    int x, y;
-    if (!field[piece->y+piece->height][piece->x] && 
-                                                is_piece_fall(piece)) {
+    bool is_free_field;
+    int x, y, dx, dy;
+
+    is_free_field = true;
+    for (dy = 0; dy < piece->height; ++dy) {
+            for (dx = 0; dx < piece->width; ++dx) {
+                if (piece->height > 1 && piece->shape[dy+1][dx])
+                    continue;
+                if (piece->shape[dy][dx] && field[piece->y+dy+1][piece->x+dx])
+                    is_free_field = false;
+            }
+        if (!is_free_field)
+            break;
+    }
+
+    if (is_free_field && is_piece_fall(piece)) {
         field[piece->y][piece->x] = 0;
         for (x = 0; x < 4; ++x)
             for (y = 0; y < 4; ++y)
                 if (piece->shape[y][x])
                     field[piece->y+y][piece->x+x] = 0;
         piece->y++;
+        return true;
     }
+    return false;
 }
 
-void
+bool
 move_piece_if_valid(struct tetromino *piece, const bool is_valid_offset,
                                              const int dx) {
     int x, y;
@@ -92,7 +107,7 @@ move_piece_if_valid(struct tetromino *piece, const bool is_valid_offset,
                     field[piece->y+y][piece->x+x] = 0;
         piece->x += dx;
     }
-    move_piece_down(piece);
+    return move_piece_down(piece);
 }
 
 int
@@ -134,10 +149,10 @@ main(void) {
         bool is_valid_offset = check_valid_offset_piece(&arr_pieces[free_indx-1], ch, arr_pieces[free_indx-1].x+dx,
         arr_pieces[free_indx-1].y+dy);
 
-        move_piece_if_valid(&arr_pieces[free_indx-1], is_valid_offset, dx);
+        bool is_move = move_piece_if_valid(&arr_pieces[free_indx-1], is_valid_offset, dx);
         flushinp();
 
-        if (!is_piece_fall(&arr_pieces[free_indx-1])) {
+        if (!is_move) {
             arr_pieces[free_indx++] = tetrominos[rand()%7];
         }
 
