@@ -73,12 +73,12 @@ move_piece_down(struct tetromino *piece) {
 
     is_free_field = true;
     for (dy = 0; dy < piece->height; ++dy) {
-            for (dx = 0; dx < piece->width; ++dx) {
-                if (piece->height > 1 && piece->shape[dy+1][dx])
-                    continue;
-                if (piece->shape[dy][dx] && field[piece->y+dy+1][piece->x+dx])
-                    is_free_field = false;
-            }
+        for (dx = 0; dx < piece->width; ++dx) {
+            if (piece->height > 1 && piece->shape[dy+1][dx])
+                continue;
+            if (piece->shape[dy][dx] && field[piece->y+dy+1][piece->x+dx])
+                is_free_field = false;
+        }
         if (!is_free_field)
             break;
     }
@@ -99,7 +99,7 @@ bool
 move_piece_if_valid(struct tetromino *piece, const bool is_valid_offset,
                                              const int dx) {
     int x, y;
-    if (is_valid_offset) {
+    if (is_valid_offset && dx) {
         field[piece->y][piece->x] = 0;
         for (x = 0; x < 4; ++x)
             for (y = 0; y < 4; ++y)
@@ -108,6 +108,68 @@ move_piece_if_valid(struct tetromino *piece, const bool is_valid_offset,
         piece->x += dx;
     }
     return move_piece_down(piece);
+}
+
+void
+rotate_tetromino(struct tetromino *piece) {
+    int new_shape[4][4];
+
+    int i, j;
+    for (i = 0; i < 4; ++i)
+        for (j = 0; j < 4; ++j)
+            new_shape[j][i] = piece->shape[i][j];
+
+    for (i = 0; i < 4; ++i)
+        for (j = 0; j < 4; ++j)
+            piece->shape[i][j] = new_shape[i][j];
+    
+    int min_col, max_col, min_row, max_row;
+    min_col = max_col = min_row = max_row = -1;
+    for (i = 0; i < 4; ++i) {
+        for (j = 0; j < 4; ++j) {
+            if (piece->shape[i][j]) {
+                if (min_col > j)
+                    min_col = j;
+                if (max_col < j)
+                    max_col = j;
+                if (min_row > i)
+                    min_row = i;
+                if (max_row < i)
+                    max_row = i;
+            }
+        }
+    }
+    piece->height = max_row - min_row;
+    piece->width = max_col - min_col;
+}
+
+void move_all_tetromino_down(struct tetromino arr_pieces[]) {
+    int i;
+    for (i = 0; i < HEIGHTFIELD; ++i) {
+        field[arr_pieces[i].y][arr_pieces[i].x] = 0;
+        ++arr_pieces[i].y;
+    }
+}
+
+void clear_line(const int row) {
+    int k;
+    for (k = 0; k < WIDTHFIELD; ++k)
+        field[row][k] = 0;
+}
+
+bool is_fill_line() {
+    int i, j, c;
+    for (i = 0; i < HEIGHTFIELD; ++i) {
+        c = 0;
+        for (j = 0; j < WIDTHFIELD; ++j)
+            if (field[i][j])
+                c++;
+        if (c == WIDTHFIELD) {
+            clear_line(i);
+            return true;
+        }
+    }
+    return false;
 }
 
 int
@@ -123,10 +185,10 @@ main(void) {
     struct tetromino arr_pieces[MAXSIZEARR];
     unsigned free_indx = 0;
 
-    arr_pieces[free_indx++] = tetrominos[rand()%7];
+    arr_pieces[free_indx++] = tetrominos[rand()%1];
     
     int dx, dy;
-    bool isRun = true;
+    bool isRun = true, rotate = false;
     while (isRun) {
         dx = 0;
         dy = 1;
@@ -144,6 +206,9 @@ main(void) {
             case 'd':
                 dx = 1;
                 break;
+            case 'r':
+                rotate = true;
+                break;
         }
 
         bool is_valid_offset = check_valid_offset_piece(&arr_pieces[free_indx-1], ch, arr_pieces[free_indx-1].x+dx,
@@ -152,8 +217,16 @@ main(void) {
         bool is_move = move_piece_if_valid(&arr_pieces[free_indx-1], is_valid_offset, dx);
         flushinp();
 
-        if (!is_move) {
-            arr_pieces[free_indx++] = tetrominos[rand()%7];
+        if(is_fill_line()) {
+            move_all_tetromino_down(arr_pieces);
+        }
+
+        if (!is_move) 
+            arr_pieces[free_indx++] = tetrominos[rand()%1];
+
+        if (rotate) {
+            rotate_tetromino(&arr_pieces[free_indx-1]);
+            rotate = false;
         }
 
         napms(200);
