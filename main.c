@@ -1,32 +1,69 @@
-#include <ncurses.h>
-#include <time.h>
-#include <stdlib.h>
+#include "header.h"
 
-#define WIDTHFIELD 10
-#define HEIGHTFIELD 20
-#define MAXSIZEARR 1000
+int
+main(void) {
+    initscr();
+    cbreak();
+    noecho();
+    scrollok(stdscr, TRUE);
+    nodelay(stdscr, TRUE);
 
-#define max(a, b) (a < b) ? b : a
+    srand(time(NULL));
+    
+    struct tetromino arr_pieces[MAXSIZEARR];
+    unsigned free_indx = 0;
 
-int field[WIDTHFIELD][HEIGHTFIELD] = {0};
+    arr_pieces[free_indx++] = tetrominos[rand()%7];
+    
+    int dx;
+    int score = 0;
+    bool isRun = true, rotate = false;
+    while (isRun) {
+        dx = 0;
+        fill_field_current_pieces(arr_pieces, free_indx);
+        print_field(score);
 
-struct tetromino {
-    int x, y;
-    int width, height;
-    int shape[4][4];
-} tetrominos[] = {
-    WIDTHFIELD/2, 0, 4, 1, {{1,1,1,1}},
-    WIDTHFIELD/2, 0, 3, 2, {{1}, {1,1,1}},
-    WIDTHFIELD/2, 0, 3, 2, {{0,0,1}, {1,1,1}},
-    WIDTHFIELD/2, 0, 2, 2, {{1,1}, {1,1}},
-    WIDTHFIELD/2, 0, 3, 2, {{0,1,1}, {1,1}},
-    WIDTHFIELD/2, 0, 3, 2, {{0,1}, {1,1,1}},
-    WIDTHFIELD/2, 0, 3, 2, {{1,1}, {0,1,1}}
-};
+        char ch = getch();
+        switch (ch) {
+            case 'a':
+                dx = -1;
+                break;
+            case 'd':
+                dx = 1;
+                break;
+            case 'r':
+                rotate = true;
+                break;
+        }
 
+        bool is_valid_offset = check_valid_offset_piece(&arr_pieces[free_indx-1], ch, dx);
+
+        bool is_move = move_piece_if_valid(&arr_pieces[free_indx-1], is_valid_offset, dx);
+        flushinp();
+
+        if (!is_move) 
+            arr_pieces[free_indx++] = tetrominos[rand()%7];
+
+        if (rotate) {
+            rotate_tetromino(&arr_pieces[free_indx-1]);
+            rotate = false;
+        }
+        
+        if(is_fill_line()) {
+            move_all_tetromino_down(arr_pieces);
+            score++;
+        }
+        napms(200);
+    }
+
+    endwin();
+    return 0;
+}
 void
-print_field() {
+print_field(const int score) {
     clear();
+    printw("Score: %d", score);
+    printw("\n");
     int i, j;
     for (i = 0; i < HEIGHTFIELD; ++i) {
         for (j = 0; j < WIDTHFIELD; ++j)
@@ -181,67 +218,4 @@ bool is_fill_line() {
         }
     }
     return false;
-}
-
-int
-main(void) {
-    initscr();
-    cbreak();
-    noecho();
-    scrollok(stdscr, TRUE);
-    nodelay(stdscr, TRUE);
-
-    srand(time(NULL));
-    
-    struct tetromino arr_pieces[MAXSIZEARR];
-    unsigned free_indx = 0;
-
-    arr_pieces[free_indx++] = tetrominos[rand()%1];
-    
-    int dx, dy;
-    bool isRun = true, rotate = false;
-    while (isRun) {
-        dx = 0;
-        dy = 1;
-        fill_field_current_pieces(arr_pieces, free_indx);
-        print_field();
-
-        char ch = getch();
-        switch (ch) {
-            case 'a':
-                dx = -1;
-                break;
-            case 's':
-                --dy;
-                break;
-            case 'd':
-                dx = 1;
-                break;
-            case 'r':
-                rotate = true;
-                break;
-        }
-
-        bool is_valid_offset = check_valid_offset_piece(&arr_pieces[free_indx-1], ch, dx);
-
-        bool is_move = move_piece_if_valid(&arr_pieces[free_indx-1], is_valid_offset, dx);
-        flushinp();
-
-        if(is_fill_line()) {
-            move_all_tetromino_down(arr_pieces);
-        }
-
-        if (!is_move) 
-            arr_pieces[free_indx++] = tetrominos[rand()%1];
-
-        if (rotate) {
-            rotate_tetromino(&arr_pieces[free_indx-1]);
-            rotate = false;
-        }
-
-        napms(200);
-    }
-
-    endwin();
-    return 0;
 }
