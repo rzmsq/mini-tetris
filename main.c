@@ -48,16 +48,27 @@ fill_field_current_pieces(struct tetromino pieces[], const int size) {
 
 bool
 check_valid_offset_piece(struct tetromino *piece, const char ch, 
-                                                  const int dx, const int dy){
+                                                  const int dx){
     int x, y;
-    if (!field[piece->y+dy][piece->x+dx] && 
-        piece->y < HEIGHTFIELD-piece->height) {
-        if (ch == 'a' && piece->x <= 0)
-            return false;
-        if (ch == 'd' && piece->x >= WIDTHFIELD-piece->width)
-            return false;
-    } else
-        return false;
+    for (y = 0; y < piece->height; ++y) {
+        for (x = 0; x < piece->width; ++x) {
+            if (ch == 'd') {
+                if (piece->shape[y][x]) {
+                    if (field[piece->y][piece->x+dx+piece->width-1] || 
+                        field[piece->y+piece->height][piece->x+dx+piece->width-1] ||
+                        piece->x+dx+piece->width-1 >= WIDTHFIELD) 
+                        return false;
+                }
+            } else if (ch == 'a') {
+                if (piece->shape[y][x]) {
+                    if (field[piece->y][piece->x+dx] || 
+                        field[piece->y+piece->height][piece->x+dx] ||
+                        piece->x+dx < 0)
+                        return false;
+                }
+            }
+        }
+    }
     return true;
 }
 
@@ -211,8 +222,7 @@ main(void) {
                 break;
         }
 
-        bool is_valid_offset = check_valid_offset_piece(&arr_pieces[free_indx-1], ch, arr_pieces[free_indx-1].x+dx,
-        arr_pieces[free_indx-1].y+dy);
+        bool is_valid_offset = check_valid_offset_piece(&arr_pieces[free_indx-1], ch, dx);
 
         bool is_move = move_piece_if_valid(&arr_pieces[free_indx-1], is_valid_offset, dx);
         flushinp();
